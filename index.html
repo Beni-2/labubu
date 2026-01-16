@@ -44,11 +44,14 @@
             font-size: 24px;
             font-weight: bold;
             z-index: 5;
-            align-items: center;
+            align-items: flex-start; /* Aligns items to top */
+            width: 100%;
+            box-sizing: border-box; /* Ensures padding doesn't affect width */
         }
         .score-info {
             display: flex;
             gap: 20px;
+            pointer-events: none;
         }
         .controls-top-right {
             display: flex;
@@ -144,8 +147,33 @@
         .visible { opacity: 1 !important; }
 
         @media (max-width: 600px) {
-            .hud-top { padding: 10px; flex-direction: column; align-items: flex-start; gap: 10px; }
-            .controls-top-right { position: absolute; top: 10px; right: 10px; }
+            .hud-top {
+                padding: 10px;
+                /* Keep row direction but allow content to manage space */
+                flex-direction: row; 
+                align-items: flex-start;
+            }
+            
+            .score-info {
+                flex-direction: column; /* Stack Score and Time vertically on mobile */
+                gap: 5px;
+                font-size: 16px; /* Slightly smaller font */
+                /* Ensure text doesn't overlap buttons by limiting width if necessary, 
+                   but flex-start usually handles it. */
+                margin-right: auto; /* Push buttons to the right */
+            }
+
+            .controls-top-right {
+                /* Keep buttons together on the right */
+                flex-direction: row;
+                gap: 5px;
+            }
+
+            .ctrl-btn {
+                padding: 4px 10px;
+                font-size: 14px;
+            }
+
             h1 { font-size: 32px; letter-spacing: 1px; }
             p { font-size: 14px; margin-bottom: 20px; }
             .main-btn { padding: 12px 30px; font-size: 20px; }
@@ -447,6 +475,7 @@
             
             // New Buttons - Explicit Reset of Score/Timer
             document.getElementById('reset-btn').addEventListener('click', () => { 
+                // Don't reset score to 0 on reset, reset to level baseline
                 score = 0; 
                 timeLeft = 0;
                 startGame(); 
