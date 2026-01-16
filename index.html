@@ -44,7 +44,35 @@
             font-size: 24px;
             font-weight: bold;
             z-index: 5;
+            align-items: center;
         }
+        .score-info {
+            display: flex;
+            gap: 20px;
+        }
+        /* New Control Buttons */
+        .controls-top-right {
+            display: flex;
+            gap: 10px;
+            pointer-events: auto;
+        }
+        .ctrl-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            color: white;
+            padding: 5px 15px;
+            font-weight: bold;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            backdrop-filter: blur(4px);
+            transition: background 0.2s;
+            min-width: auto; /* Override default button style */
+        }
+        .ctrl-btn:active { background: rgba(255, 255, 255, 0.4); }
+        .btn-reset { border-color: #facc15; color: #facc15; }
+        .btn-esc { border-color: #f87171; color: #f87171; }
+
         .score-box { color: #4ade80; }
         .timer-box { color: #f87171; }
         
@@ -97,7 +125,8 @@
         h1 { font-size: 48px; margin-bottom: 10px; color: #facc15; text-transform: uppercase; letter-spacing: 2px; text-align: center; }
         p { font-size: 18px; color: #ccc; max-width: 600px; text-align: center; margin-bottom: 30px; padding: 0 20px; }
         
-        button {
+        /* Main Menu Buttons */
+        .main-btn {
             background: linear-gradient(135deg, #ef4444, #b91c1c);
             border: none;
             padding: 15px 40px;
@@ -111,16 +140,17 @@
             min-width: 200px;
             touch-action: manipulation;
         }
-        button:active { transform: scale(0.95); box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4); }
+        .main-btn:active { transform: scale(0.95); box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4); }
 
         .hidden { display: none !important; }
         .visible { opacity: 1 !important; }
 
         @media (max-width: 600px) {
-            .hud-top { padding: 15px; font-size: 18px; }
+            .hud-top { padding: 10px; flex-direction: column; align-items: flex-start; gap: 10px; }
+            .controls-top-right { position: absolute; top: 10px; right: 10px; }
             h1 { font-size: 32px; letter-spacing: 1px; }
             p { font-size: 14px; margin-bottom: 20px; }
-            button { padding: 12px 30px; font-size: 20px; }
+            .main-btn { padding: 12px 30px; font-size: 20px; }
         }
     </style>
     <!-- Use cdnjs 0.160.0 - Reliable and supports CapsuleGeometry -->
@@ -132,16 +162,22 @@
 
     <div id="ui-layer">
         <div class="hud-top">
-            <div class="score-box">SCORE: <span id="score-display">0</span> / <span id="target-score">2000</span></div>
-            <div class="timer-box">TIME: <span id="timer-display">90</span></div>
+            <div class="score-info">
+                <div class="score-box">SCORE: <span id="score-display">0</span> / <span id="target-score">2000</span></div>
+                <div class="timer-box">TIME: <span id="timer-display">90</span></div>
+            </div>
+            <div class="controls-top-right">
+                <button id="reset-btn" class="ctrl-btn btn-reset">RESET</button>
+                <button id="esc-btn" class="ctrl-btn btn-esc">ESC</button>
+            </div>
         </div>
         <div id="crosshair"></div>
     </div>
 
     <div id="start-screen">
-        <h1>Doll Hunter 3D</h1>
-        <p>Targets are fast. Tap the dolls to shoot.<br>Reach 2000pts to unlock Level 2 (Drones).<br>Reach 3000pts for Level 3 (Ocean).</p>
-        <button id="start-btn">START MISSION</button>
+        <h1>Labubu Hunter 3D</h1>
+        <p>Targets are fast. Tap the dolls to shoot.<br>Unlock levels: 2000 (Drones), 3000 (Ocean), 4000 (Canyon).</p>
+        <button id="start-btn" class="main-btn">START MISSION</button>
     </div>
 
     <div id="level-up-screen" class="hidden">
@@ -152,7 +188,7 @@
     <div id="game-over-screen" class="hidden">
         <h1 id="game-over-title">TIME'S UP</h1>
         <p>Final Score: <span id="final-score">0</span></p>
-        <button id="restart-btn">PLAY AGAIN</button>
+        <button id="restart-btn" class="main-btn">PLAY AGAIN</button>
     </div>
 
     <script>
@@ -161,7 +197,7 @@
         let gunGroup, muzzleFlash;
         let targets = [];
         let particles = [];
-        let clouds = [];
+        let scenery = []; // Clouds, mountains, etc.
         let lastTime = 0;
         let gameActive = false;
         let score = 0;
@@ -172,6 +208,7 @@
         let audioCtx;
         let bgmNodes = []; 
         let currentLevel = 1;
+        let initialLevelScore = 0; // To reset correctly
         
         const COLORS = [0x9966cc, 0xff99cc, 0x66ccff, 0x99ff99, 0xffcc66]; 
 
@@ -434,8 +471,18 @@
             
             document.getElementById('start-btn').addEventListener('click', startGame);
             document.getElementById('restart-btn').addEventListener('click', startGame);
+            
             document.getElementById('start-btn').addEventListener('touchstart', (e) => { e.preventDefault(); startGame(); }, {passive: false});
             document.getElementById('restart-btn').addEventListener('touchstart', (e) => { e.preventDefault(); startGame(); }, {passive: false});
+            
+            // New Buttons
+            document.getElementById('reset-btn').addEventListener('click', () => { if(gameActive) startGame(); });
+            document.getElementById('esc-btn').addEventListener('click', () => { 
+                currentLevel = 1; 
+                score = 0; 
+                initialLevelScore = 0;
+                startGame(); 
+            });
 
             const unlockAudio = () => {
                 initAudio();
@@ -448,10 +495,36 @@
             requestAnimationFrame(animate);
         }
 
-        // --- Asset Generation ---
+        // --- Environment Setup ---
+        function setEnvironment(level) {
+            // Clear existing scenery
+            scenery.forEach(s => { cleanObject(s); scene.remove(s); });
+            scenery = [];
+
+            if (level === 1 || level === 2) {
+                // Space/Dark
+                scene.background = new THREE.Color(0x202030);
+                scene.fog = null;
+                floor.material.color.setHex(0x111111);
+            } 
+            else if (level === 3) {
+                // Ocean
+                scene.background = new THREE.Color(0x87CEEB);
+                scene.fog = new THREE.Fog(0x87CEEB, 20, 80);
+                floor.material.color.setHex(0x0077be);
+                createClouds();
+            } 
+            else if (level === 4) {
+                // Grand Canyon
+                scene.background = new THREE.Color(0x87CEFA); // Lighter sky
+                scene.fog = new THREE.Fog(0x87CEFA, 15, 60);
+                floor.material.color.setHex(0xcd5c5c); // IndianRed
+                createClouds();
+                createMountains();
+            }
+        }
 
         function createClouds() {
-            if (clouds.length > 0) return;
             const cloudGeo = new THREE.SphereGeometry(1, 8, 8);
             const cloudMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.8 });
             
@@ -464,9 +537,30 @@
                 );
                 cloud.scale.set(3 + Math.random() * 3, 1 + Math.random(), 2 + Math.random());
                 scene.add(cloud);
-                clouds.push(cloud);
+                scenery.push(cloud);
             }
         }
+
+        function createMountains() {
+            const mtnGeo = new THREE.ConeGeometry(5, 10, 4);
+            const mtnMat = new THREE.MeshStandardMaterial({ color: 0x8b4513, roughness: 1.0 }); // SaddleBrown
+            
+            for(let i=0; i<20; i++) {
+                const mtn = new THREE.Mesh(mtnGeo, mtnMat);
+                // Place on horizon
+                mtn.position.set(
+                    (Math.random() - 0.5) * 100,
+                    0, // Base at floor
+                    -40 - Math.random() * 30
+                );
+                const scale = 2 + Math.random() * 3;
+                mtn.scale.set(scale, scale, scale);
+                scene.add(mtn);
+                scenery.push(mtn);
+            }
+        }
+
+        // --- Asset Generation ---
 
         function createGun() {
             gunGroup = new THREE.Group();
@@ -479,7 +573,6 @@
             slide.castShadow = true;
             gunGroup.add(slide);
 
-            // SMALL TUBULAR BARREL
             const barrel = new THREE.Mesh(
                 new THREE.CylinderGeometry(0.03, 0.03, 0.8, 32, 1, true), 
                 new THREE.MeshStandardMaterial({
@@ -517,10 +610,16 @@
         function createLabubuTarget() {
             const group = new THREE.Group();
             
-            // Flying Logic: Lvl 2 Drones (50%), Lvl 3 Wings (50%)
-            const isFlying = (currentLevel >= 2) && Math.random() > 0.5;
+            // Logic for flying vs walking vs swimming
+            let isFlying = false;
+            if (currentLevel === 2) isFlying = Math.random() > 0.5;
+            if (currentLevel === 3) isFlying = Math.random() > 0.5;
+            if (currentLevel === 4) isFlying = true; // All flying in Lvl 4
 
-            const color = COLORS[Math.floor(Math.random() * COLORS.length)];
+            // Bonus Pink Labubu (Only Level 4)
+            const isPink = currentLevel === 4 && Math.random() < 0.15; // 15% chance
+            const color = isPink ? 0xff69b4 : COLORS[Math.floor(Math.random() * COLORS.length)];
+
             const furMat = new THREE.MeshStandardMaterial({ color: color, roughness: 0.9 });
             const skinMat = new THREE.MeshStandardMaterial({ color: 0xffeebb, roughness: 0.4 });
             const blackMat = new THREE.MeshStandardMaterial({ color: 0x000000 }); 
@@ -531,6 +630,7 @@
             head.castShadow = true;
             group.add(head);
 
+            // Ears
             const earGeo = new THREE.CapsuleGeometry(0.1, 0.6, 4, 8);
             const leftEar = new THREE.Mesh(earGeo, furMat);
             leftEar.position.set(-0.25, 1.6, 0);
@@ -542,10 +642,12 @@
             rightEar.rotation.z = -0.2;
             group.add(rightEar);
 
+            // Face
             const face = new THREE.Mesh(new THREE.CircleGeometry(0.25, 16), skinMat);
             face.position.set(0, 1.1, 0.35);
             group.add(face);
 
+            // Eyes
             const eyeGeo = new THREE.SphereGeometry(0.05, 8, 8);
             const leftEye = new THREE.Mesh(eyeGeo, blackMat);
             leftEye.position.set(-0.1, 1.15, 0.42);
@@ -555,12 +657,15 @@
             rightEye.position.set(0.1, 1.15, 0.42);
             group.add(rightEye);
 
+            // Body
             const body = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.35, 0.6, 16), furMat);
             body.position.y = 0.6;
             body.castShadow = true;
             group.add(body);
 
+            // Limbs
             const limbGeo = new THREE.CapsuleGeometry(0.08, 0.4, 4, 8);
+            
             const leftArm = new THREE.Mesh(limbGeo, furMat);
             leftArm.position.set(-0.4, 0.7, 0);
             leftArm.rotation.z = 0.5;
@@ -579,19 +684,17 @@
             rightLeg.position.set(0.15, 0.2, 0);
             group.add(rightLeg);
 
-            // Flying Attachments
+            // Attachments
             if (isFlying) {
                 if (currentLevel === 2) {
-                    // --- DRONE (Lvl 2) ---
+                    // Drones
                     const droneGroup = new THREE.Group();
                     const droneMat = new THREE.MeshStandardMaterial({ color: 0x333333, metalness: 0.8 });
                     const propMat = new THREE.MeshBasicMaterial({ color: 0x00ffff });
-
                     const frame1 = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.1, 0.1), droneMat);
                     const frame2 = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 1.5), droneMat);
                     droneGroup.add(frame1);
                     droneGroup.add(frame2);
-
                     const propGeo = new THREE.BoxGeometry(0.6, 0.02, 0.05);
                     const props = [];
                     [[-0.7, 0], [0.7, 0], [0, -0.7], [0, 0.7]].forEach(pos => {
@@ -606,27 +709,26 @@
                     droneGroup.position.set(0, 2.0, 0);
                     group.add(droneGroup);
                     group.userData.props = props;
-                } else if (currentLevel === 3) {
-                    // --- WINGS (Lvl 3) ---
+                } else {
+                    // Wings (Lvl 3 & 4)
                     const wingGeo = new THREE.ConeGeometry(0.5, 1.2, 3);
                     wingGeo.scale(0.2, 1, 1);
                     const wingMat = new THREE.MeshStandardMaterial({ color: 0xffffff, opacity: 0.8, transparent: true });
-                    
                     const leftWing = new THREE.Mesh(wingGeo, wingMat);
                     leftWing.position.set(-0.5, 1.0, -0.3);
                     leftWing.rotation.z = 0.5;
                     group.add(leftWing);
-
                     const rightWing = new THREE.Mesh(wingGeo, wingMat);
                     rightWing.position.set(0.5, 1.0, -0.3);
                     rightWing.rotation.z = -0.5;
                     group.add(rightWing);
-
                     group.userData.wings = [leftWing, rightWing];
                 }
             }
 
             // Movement Config
+            // Slow Flying for beatability (0.6)
+            // Lvl 4: 3 seconds flight time approx.
             const speedFactor = isFlying ? 0.6 : 1.0; 
             
             group.userData = {
@@ -635,6 +737,7 @@
                 id: Math.random().toString(36).substr(2, 9),
                 isDead: false,
                 isFlying: isFlying,
+                isPink: isPink,
                 leftLeg: leftLeg,
                 rightLeg: rightLeg,
                 leftArm: leftArm,
@@ -644,11 +747,19 @@
             };
 
             const xPos = (Math.random() - 0.5) * 15;
-            const yStart = isFlying ? (Math.random() * 2 + 2) : (currentLevel === 3 ? -0.3 : 0); // Swimming: sink slightly
+            let yStart = 0;
+            if (isFlying) yStart = Math.random() * 2 + 2;
+            else if (currentLevel === 3) yStart = -0.3; // Swimming
+            
+            // Lvl 4 starts elevated? No, shooter is on ledge, enemies fly towards
+            if (currentLevel === 4) {
+                 yStart = Math.random() * 4 + 1; // Vary height
+            }
+
             const zPos = -30 - Math.random() * 10; 
             
             group.position.set(xPos, yStart, zPos);
-            group.lookAt(0, yStart, 0);
+            group.lookAt(0, yStart, 0); // Always face center
 
             scene.add(group);
             targets.push(group);
@@ -687,20 +798,34 @@
             initAudio();
             startBackgroundMusic(); 
 
-            score = 0;
-            timeLeft = 90; 
-            currentLevel = 1;
+            // Initialize level settings based on currentLevel
+            if (currentLevel === 1) {
+                score = 0;
+                timeLeft = 90;
+                document.getElementById('target-score').innerText = "2000";
+                initialLevelScore = 0;
+            } else if (currentLevel === 2) {
+                score = Math.max(score, 2000); // Ensure score is at least floor
+                initialLevelScore = 2000;
+                timeLeft = 180;
+                document.getElementById('target-score').innerText = "3000";
+            } else if (currentLevel === 3) {
+                score = Math.max(score, 3000);
+                initialLevelScore = 3000;
+                timeLeft = 180;
+                document.getElementById('target-score').innerText = "4000";
+            } else if (currentLevel === 4) {
+                score = Math.max(score, 4000);
+                initialLevelScore = 4000;
+                timeLeft = 180;
+                document.getElementById('target-score').innerText = "5000";
+            }
+
             gameActive = true;
             difficultyMultiplier = 1;
-            
-            // Reset visual environment
-            scene.background = new THREE.Color(0x202030);
-            if(floor) floor.material.color.setHex(0x111111);
-            clouds.forEach(c => scene.remove(c));
-            clouds = [];
+            setEnvironment(currentLevel);
             
             document.getElementById('score-display').innerText = score;
-            document.getElementById('target-score').innerText = "2000";
             document.getElementById('timer-display').innerText = timeLeft;
             document.getElementById('start-screen').classList.add('hidden');
             document.getElementById('game-over-screen').classList.add('hidden');
@@ -709,9 +834,7 @@
             targets.forEach(t => { cleanObject(t); scene.remove(t); });
             targets = [];
             
-            particles.forEach(p => { 
-                scene.remove(p.mesh); 
-            });
+            particles.forEach(p => { scene.remove(p.mesh); });
             particles = [];
 
             if(gunGroup) gunGroup.rotation.set(0,0,0);
@@ -779,31 +902,36 @@
                         scene.remove(hitObject);
                         
                         targets = targets.filter(t => t !== hitObject);
-                        score += 100;
+                        
+                        // Scoring
+                        let points = 100;
+                        if (currentLevel === 4 && hitObject.userData.isPink) points = 500;
+                        score += points;
+
                         document.getElementById('score-display').innerText = score;
 
                         // Level Transitions
                         if (currentLevel === 1 && score >= 2000) {
                             currentLevel = 2;
                             timeLeft = 180;
-                            document.getElementById('timer-display').innerText = timeLeft;
                             document.getElementById('target-score').innerText = "3000";
+                            setEnvironment(2);
                             showLevelScreen("LEVEL 2 INITIALIZED", "3000");
                         } else if (currentLevel === 2 && score >= 3000) {
                             currentLevel = 3;
                             timeLeft = 180;
-                            document.getElementById('timer-display').innerText = timeLeft;
                             document.getElementById('target-score').innerText = "4000";
-                            
-                            // Environment Change
-                            scene.background = new THREE.Color(0x87CEEB);
-                            floor.material.color.setHex(0x0077be);
-                            createClouds();
-                            
+                            setEnvironment(3);
                             showLevelScreen("LEVEL 3: OCEAN", "4000");
+                        } else if (currentLevel === 3 && score >= 4000) {
+                            currentLevel = 4;
+                            timeLeft = 180;
+                            document.getElementById('target-score').innerText = "5000";
+                            setEnvironment(4);
+                            showLevelScreen("LEVEL 4: CANYON", "5000");
                         }
 
-                        if (score >= 4000) {
+                        if (score >= 5000) {
                             document.getElementById('game-over-title').innerText = "MISSION COMPLETE";
                             gameOver();
                         }
@@ -839,6 +967,7 @@
                 }
 
                 spawnTimer += dt;
+                // Faster spawning in later levels?
                 if (spawnTimer > 0.8 / difficultyMultiplier) {
                     createLabubuTarget();
                     spawnTimer = 0;
@@ -861,19 +990,16 @@
                     const walkSpeed = time * 0.016; 
                     
                     if (target.userData.isFlying) {
-                        // Drone Props
                         if (target.userData.props) {
                             target.userData.props.forEach(p => { p.rotation.y += 20 * dt; });
                         }
-                        // Wings (Lvl 3)
                         if (target.userData.wings) {
                             const flap = Math.sin(time * 0.02) * 0.5;
-                            target.userData.wings[0].rotation.z = 0.5 + flap; // Left
-                            target.userData.wings[1].rotation.z = -0.5 - flap; // Right
+                            target.userData.wings[0].rotation.z = 0.5 + flap;
+                            target.userData.wings[1].rotation.z = -0.5 - flap;
                         }
                         target.position.y += Math.sin(time * 0.005) * 0.01; 
                     } else {
-                        // Walking / Swimming
                         target.position.y = (currentLevel === 3 ? -0.3 : 0) + Math.abs(Math.sin(walkSpeed + target.userData.bobOffset)) * 0.1;
                         if (target.userData.leftLeg) {
                             target.userData.leftLeg.rotation.x = Math.sin(walkSpeed) * 0.5;
@@ -883,14 +1009,19 @@
                         }
                     }
 
+                    // Pass Logic
                     if (target.position.z > 2) {
                         cleanObject(target);
                         scene.remove(target);
                         targets.splice(i, 1);
                         
-                        // Deduct points ONLY if NOT flying
-                        if (!target.userData.isFlying) {
+                        // Deduct points logic
+                        // Lvl 2/3: Only deduct if walking (NOT flying)
+                        // Lvl 4: ALL flying deduct points
+                        if (currentLevel === 4) {
                             score -= 50;
+                        } else {
+                            if (!target.userData.isFlying) score -= 50;
                         }
                         
                         document.getElementById('score-display').innerText = score;
