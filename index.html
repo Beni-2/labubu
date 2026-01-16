@@ -50,7 +50,6 @@
             display: flex;
             gap: 20px;
         }
-        /* New Control Buttons */
         .controls-top-right {
             display: flex;
             gap: 10px;
@@ -67,7 +66,7 @@
             cursor: pointer;
             backdrop-filter: blur(4px);
             transition: background 0.2s;
-            min-width: auto; /* Override default button style */
+            min-width: auto;
         }
         .ctrl-btn:active { background: rgba(255, 255, 255, 0.4); }
         .btn-reset { border-color: #facc15; color: #facc15; }
@@ -125,7 +124,6 @@
         h1 { font-size: 48px; margin-bottom: 10px; color: #facc15; text-transform: uppercase; letter-spacing: 2px; text-align: center; }
         p { font-size: 18px; color: #ccc; max-width: 600px; text-align: center; margin-bottom: 30px; padding: 0 20px; }
         
-        /* Main Menu Buttons */
         .main-btn {
             background: linear-gradient(135deg, #ef4444, #b91c1c);
             border: none;
@@ -153,7 +151,6 @@
             .main-btn { padding: 12px 30px; font-size: 20px; }
         }
     </style>
-    <!-- Use cdnjs 0.160.0 - Reliable and supports CapsuleGeometry -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.min.js"></script>
 </head>
 <body>
@@ -176,7 +173,7 @@
 
     <div id="start-screen">
         <h1>Labubu Hunter 3D</h1>
-        <p>Targets are fast. Tap the dolls to shoot.<br>Unlock levels: 2000 (Drones), 3000 (Ocean), 4000 (Canyon).</p>
+        <p>Targets are fast. Tap the dolls to shoot.<br>Unlock levels: 2000, 3000, 4000.<br>Level 4: Grand Canyon (Bonus Pink Labubu).</p>
         <button id="start-btn" class="main-btn">START MISSION</button>
     </div>
 
@@ -197,7 +194,7 @@
         let gunGroup, muzzleFlash;
         let targets = [];
         let particles = [];
-        let scenery = []; // Clouds, mountains, etc.
+        let scenery = []; 
         let lastTime = 0;
         let gameActive = false;
         let score = 0;
@@ -208,11 +205,10 @@
         let audioCtx;
         let bgmNodes = []; 
         let currentLevel = 1;
-        let initialLevelScore = 0; // To reset correctly
+        let initialLevelScore = 0; 
         
         const COLORS = [0x9966cc, 0xff99cc, 0x66ccff, 0x99ff99, 0xffcc66]; 
 
-        // Shared Lava Assets
         let lavaGeometry;
         let matHot, matCool, matCold;
 
@@ -293,17 +289,13 @@
             [300, 200, 100].forEach((freq, i) => {
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
-                
                 osc.type = 'sawtooth';
                 osc.frequency.setValueAtTime(freq, t + i * 0.3);
                 osc.frequency.exponentialRampToValueAtTime(10, t + i * 0.3 + 0.3);
-
                 gain.gain.setValueAtTime(0.2, t + i * 0.3);
                 gain.gain.exponentialRampToValueAtTime(0.001, t + i * 0.3 + 0.3);
-
                 osc.connect(gain);
                 gain.connect(audioCtx.destination);
-                
                 osc.start(t + i * 0.3);
                 osc.stop(t + i * 0.3 + 0.5);
             });
@@ -312,7 +304,6 @@
         function playShootSound() {
             if (!audioCtx) return; 
             const t = audioCtx.currentTime;
-
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
             osc.type = 'square';
@@ -344,23 +335,18 @@
         function playExplosionSound() {
             if (!audioCtx) return; 
             const t = audioCtx.currentTime;
-
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
             const filter = audioCtx.createBiquadFilter();
-
             osc.type = 'sawtooth';
             osc.frequency.setValueAtTime(600, t);
             osc.frequency.exponentialRampToValueAtTime(50, t + 0.5);
-
             filter.type = 'bandpass';
             filter.Q.value = 5;
             filter.frequency.setValueAtTime(1500, t);
             filter.frequency.linearRampToValueAtTime(200, t + 0.5);
-
             gain.gain.setValueAtTime(0.6, t);
             gain.gain.exponentialRampToValueAtTime(0.01, t + 0.6);
-
             osc.connect(filter);
             filter.connect(gain);
             gain.connect(audioCtx.destination);
@@ -371,18 +357,14 @@
             const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
             const data = buffer.getChannelData(0);
             for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1);
-            
             const noise = audioCtx.createBufferSource();
             noise.buffer = buffer;
-            
             const noiseFilter = audioCtx.createBiquadFilter();
             noiseFilter.type = 'lowpass';
             noiseFilter.frequency.value = 400; 
-
             const noiseGain = audioCtx.createGain();
             noiseGain.gain.setValueAtTime(0.8, t);
             noiseGain.gain.exponentialRampToValueAtTime(0.01, t + 0.5);
-
             noise.connect(noiseFilter);
             noiseFilter.connect(noiseGain);
             noiseGain.connect(audioCtx.destination);
@@ -411,13 +393,10 @@
 
         function init() {
             if (typeof THREE === 'undefined') {
-                console.error('Three.js failed to load.');
                 alert('Three.js failed to load. Please check your connection.');
                 return;
             }
-
             const container = document.getElementById('game-container');
-
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x202030);
 
@@ -451,18 +430,10 @@
             floor.receiveShadow = true;
             scene.add(floor);
 
-            // Initialize Shared Lava Assets
             lavaGeometry = new THREE.IcosahedronGeometry(0.12, 0); 
-            
-            matHot = new THREE.MeshPhongMaterial({ 
-                color: 0xffff00, emissive: 0xff4500, emissiveIntensity: 2, flatShading: true 
-            });
-            matCool = new THREE.MeshPhongMaterial({ 
-                color: 0xff0000, emissive: 0xaa0000, emissiveIntensity: 0.5, flatShading: true 
-            });
-            matCold = new THREE.MeshPhongMaterial({ 
-                color: 0x333333, emissive: 0x000000, flatShading: true 
-            });
+            matHot = new THREE.MeshPhongMaterial({ color: 0xffff00, emissive: 0xff4500, emissiveIntensity: 2, flatShading: true });
+            matCool = new THREE.MeshPhongMaterial({ color: 0xff0000, emissive: 0xaa0000, emissiveIntensity: 0.5, flatShading: true });
+            matCold = new THREE.MeshPhongMaterial({ color: 0x333333, emissive: 0x000000, flatShading: true });
 
             createGun();
 
@@ -471,17 +442,42 @@
             
             document.getElementById('start-btn').addEventListener('click', startGame);
             document.getElementById('restart-btn').addEventListener('click', startGame);
-            
             document.getElementById('start-btn').addEventListener('touchstart', (e) => { e.preventDefault(); startGame(); }, {passive: false});
             document.getElementById('restart-btn').addEventListener('touchstart', (e) => { e.preventDefault(); startGame(); }, {passive: false});
             
-            // New Buttons
-            document.getElementById('reset-btn').addEventListener('click', () => { if(gameActive) startGame(); });
-            document.getElementById('esc-btn').addEventListener('click', () => { 
-                currentLevel = 1; 
+            // New Buttons - Explicit Reset of Score/Timer
+            document.getElementById('reset-btn').addEventListener('click', () => { 
                 score = 0; 
-                initialLevelScore = 0;
+                timeLeft = 0;
                 startGame(); 
+            });
+            document.getElementById('esc-btn').addEventListener('click', () => { 
+                gameActive = false;
+                stopBackgroundMusic();
+                
+                // Return to main menu
+                document.getElementById('start-screen').classList.remove('hidden');
+                document.getElementById('game-over-screen').classList.add('hidden');
+                document.getElementById('level-up-screen').classList.add('hidden');
+                document.getElementById('level-up-screen').classList.remove('visible');
+                
+                // Clear Scene
+                targets.forEach(t => { cleanObject(t); scene.remove(t); });
+                targets = [];
+                particles.forEach(p => { scene.remove(p.mesh); });
+                particles = [];
+                scenery.forEach(s => { cleanObject(s); scene.remove(s); });
+                scenery = [];
+                
+                // Reset State
+                currentLevel = 1;
+                score = 0;
+                initialLevelScore = 0;
+                setEnvironment(1);
+                
+                document.getElementById('score-display').innerText = "0";
+                document.getElementById('target-score').innerText = "2000";
+                document.getElementById('timer-display').innerText = "90";
             });
 
             const unlockAudio = () => {
@@ -497,28 +493,28 @@
 
         // --- Environment Setup ---
         function setEnvironment(level) {
-            // Clear existing scenery
             scenery.forEach(s => { cleanObject(s); scene.remove(s); });
             scenery = [];
 
             if (level === 1 || level === 2) {
-                // Space/Dark
                 scene.background = new THREE.Color(0x202030);
                 scene.fog = null;
                 floor.material.color.setHex(0x111111);
+                camera.position.set(0, 1.6, 5);
             } 
             else if (level === 3) {
-                // Ocean
                 scene.background = new THREE.Color(0x87CEEB);
                 scene.fog = new THREE.Fog(0x87CEEB, 20, 80);
                 floor.material.color.setHex(0x0077be);
+                camera.position.set(0, 1.6, 5);
                 createClouds();
             } 
             else if (level === 4) {
-                // Grand Canyon
-                scene.background = new THREE.Color(0x87CEFA); // Lighter sky
+                // Grand Canyon Ledge
+                scene.background = new THREE.Color(0x87CEFA);
                 scene.fog = new THREE.Fog(0x87CEFA, 15, 60);
-                floor.material.color.setHex(0xcd5c5c); // IndianRed
+                floor.material.color.setHex(0xcd5c5c);
+                camera.position.set(0, 4, 5); // Elevated
                 createClouds();
                 createMountains();
             }
@@ -527,7 +523,6 @@
         function createClouds() {
             const cloudGeo = new THREE.SphereGeometry(1, 8, 8);
             const cloudMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.8 });
-            
             for(let i=0; i<15; i++) {
                 const cloud = new THREE.Mesh(cloudGeo, cloudMat);
                 cloud.position.set(
@@ -543,28 +538,23 @@
 
         function createMountains() {
             const mtnGeo = new THREE.ConeGeometry(5, 10, 4);
-            const mtnMat = new THREE.MeshStandardMaterial({ color: 0x8b4513, roughness: 1.0 }); // SaddleBrown
-            
-            for(let i=0; i<20; i++) {
+            const mtnMat = new THREE.MeshStandardMaterial({ color: 0x8b4513, roughness: 1.0 }); 
+            for(let i=0; i<30; i++) {
                 const mtn = new THREE.Mesh(mtnGeo, mtnMat);
-                // Place on horizon
                 mtn.position.set(
-                    (Math.random() - 0.5) * 100,
-                    0, // Base at floor
-                    -40 - Math.random() * 30
+                    (Math.random() - 0.5) * 120,
+                    0, 
+                    -30 - Math.random() * 40
                 );
-                const scale = 2 + Math.random() * 3;
+                const scale = 2 + Math.random() * 4;
                 mtn.scale.set(scale, scale, scale);
                 scene.add(mtn);
                 scenery.push(mtn);
             }
         }
 
-        // --- Asset Generation ---
-
         function createGun() {
             gunGroup = new THREE.Group();
-
             const metalMat = new THREE.MeshStandardMaterial({ color: 0x888888, metalness: 0.8, roughness: 0.2 });
             const gripMat = new THREE.MeshStandardMaterial({ color: 0x3d2817, roughness: 0.9 });
 
@@ -573,8 +563,9 @@
             slide.castShadow = true;
             gunGroup.add(slide);
 
+            // SMALLER TUBULAR BARREL
             const barrel = new THREE.Mesh(
-                new THREE.CylinderGeometry(0.03, 0.03, 0.8, 32, 1, true), 
+                new THREE.CylinderGeometry(0.02, 0.02, 0.8, 32, 1, true), 
                 new THREE.MeshStandardMaterial({
                     color: 0x111111, 
                     side: THREE.DoubleSide
@@ -610,67 +601,56 @@
         function createLabubuTarget() {
             const group = new THREE.Group();
             
-            // Logic for flying vs walking vs swimming
             let isFlying = false;
             if (currentLevel === 2) isFlying = Math.random() > 0.5;
             if (currentLevel === 3) isFlying = Math.random() > 0.5;
-            if (currentLevel === 4) isFlying = true; // All flying in Lvl 4
+            if (currentLevel === 4) isFlying = true; 
 
             // Bonus Pink Labubu (Only Level 4)
-            const isPink = currentLevel === 4 && Math.random() < 0.15; // 15% chance
+            const isPink = currentLevel === 4 && Math.random() < 0.15; 
             const color = isPink ? 0xff69b4 : COLORS[Math.floor(Math.random() * COLORS.length)];
 
             const furMat = new THREE.MeshStandardMaterial({ color: color, roughness: 0.9 });
             const skinMat = new THREE.MeshStandardMaterial({ color: 0xffeebb, roughness: 0.4 });
             const blackMat = new THREE.MeshStandardMaterial({ color: 0x000000 }); 
 
-            // Head
             const head = new THREE.Mesh(new THREE.SphereGeometry(0.4, 16, 16), furMat);
             head.position.y = 1.1;
             head.castShadow = true;
             group.add(head);
 
-            // Ears
             const earGeo = new THREE.CapsuleGeometry(0.1, 0.6, 4, 8);
             const leftEar = new THREE.Mesh(earGeo, furMat);
             leftEar.position.set(-0.25, 1.6, 0);
             leftEar.rotation.z = 0.2;
             group.add(leftEar);
-
             const rightEar = new THREE.Mesh(earGeo, furMat);
             rightEar.position.set(0.25, 1.6, 0);
             rightEar.rotation.z = -0.2;
             group.add(rightEar);
 
-            // Face
             const face = new THREE.Mesh(new THREE.CircleGeometry(0.25, 16), skinMat);
             face.position.set(0, 1.1, 0.35);
             group.add(face);
 
-            // Eyes
             const eyeGeo = new THREE.SphereGeometry(0.05, 8, 8);
             const leftEye = new THREE.Mesh(eyeGeo, blackMat);
             leftEye.position.set(-0.1, 1.15, 0.42);
             group.add(leftEye);
-
             const rightEye = new THREE.Mesh(eyeGeo, blackMat);
             rightEye.position.set(0.1, 1.15, 0.42);
             group.add(rightEye);
 
-            // Body
             const body = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.35, 0.6, 16), furMat);
             body.position.y = 0.6;
             body.castShadow = true;
             group.add(body);
 
-            // Limbs
             const limbGeo = new THREE.CapsuleGeometry(0.08, 0.4, 4, 8);
-            
             const leftArm = new THREE.Mesh(limbGeo, furMat);
             leftArm.position.set(-0.4, 0.7, 0);
             leftArm.rotation.z = 0.5;
             group.add(leftArm);
-            
             const rightArm = new THREE.Mesh(limbGeo, furMat);
             rightArm.position.set(0.4, 0.7, 0);
             rightArm.rotation.z = -0.5;
@@ -679,15 +659,12 @@
             const leftLeg = new THREE.Mesh(limbGeo, furMat);
             leftLeg.position.set(-0.15, 0.2, 0);
             group.add(leftLeg);
-
             const rightLeg = new THREE.Mesh(limbGeo, furMat);
             rightLeg.position.set(0.15, 0.2, 0);
             group.add(rightLeg);
 
-            // Attachments
             if (isFlying) {
                 if (currentLevel === 2) {
-                    // Drones
                     const droneGroup = new THREE.Group();
                     const droneMat = new THREE.MeshStandardMaterial({ color: 0x333333, metalness: 0.8 });
                     const propMat = new THREE.MeshBasicMaterial({ color: 0x00ffff });
@@ -710,7 +687,6 @@
                     group.add(droneGroup);
                     group.userData.props = props;
                 } else {
-                    // Wings (Lvl 3 & 4)
                     const wingGeo = new THREE.ConeGeometry(0.5, 1.2, 3);
                     wingGeo.scale(0.2, 1, 1);
                     const wingMat = new THREE.MeshStandardMaterial({ color: 0xffffff, opacity: 0.8, transparent: true });
@@ -726,9 +702,6 @@
                 }
             }
 
-            // Movement Config
-            // Slow Flying for beatability (0.6)
-            // Lvl 4: 3 seconds flight time approx.
             const speedFactor = isFlying ? 0.6 : 1.0; 
             
             group.userData = {
@@ -751,15 +724,14 @@
             if (isFlying) yStart = Math.random() * 2 + 2;
             else if (currentLevel === 3) yStart = -0.3; // Swimming
             
-            // Lvl 4 starts elevated? No, shooter is on ledge, enemies fly towards
             if (currentLevel === 4) {
-                 yStart = Math.random() * 4 + 1; // Vary height
+                 yStart = Math.random() * 4 + 1; // High flyers
             }
 
             const zPos = -30 - Math.random() * 10; 
             
             group.position.set(xPos, yStart, zPos);
-            group.lookAt(0, yStart, 0); // Always face center
+            group.lookAt(0, yStart, 0); 
 
             scene.add(group);
             targets.push(group);
@@ -798,14 +770,13 @@
             initAudio();
             startBackgroundMusic(); 
 
-            // Initialize level settings based on currentLevel
             if (currentLevel === 1) {
                 score = 0;
                 timeLeft = 90;
                 document.getElementById('target-score').innerText = "2000";
                 initialLevelScore = 0;
             } else if (currentLevel === 2) {
-                score = Math.max(score, 2000); // Ensure score is at least floor
+                score = Math.max(score, 2000); 
                 initialLevelScore = 2000;
                 timeLeft = 180;
                 document.getElementById('target-score').innerText = "3000";
@@ -903,7 +874,6 @@
                         
                         targets = targets.filter(t => t !== hitObject);
                         
-                        // Scoring
                         let points = 100;
                         if (currentLevel === 4 && hitObject.userData.isPink) points = 500;
                         score += points;
@@ -967,7 +937,6 @@
                 }
 
                 spawnTimer += dt;
-                // Faster spawning in later levels?
                 if (spawnTimer > 0.8 / difficultyMultiplier) {
                     createLabubuTarget();
                     spawnTimer = 0;
@@ -1009,15 +978,14 @@
                         }
                     }
 
-                    // Pass Logic
                     if (target.position.z > 2) {
                         cleanObject(target);
                         scene.remove(target);
                         targets.splice(i, 1);
                         
-                        // Deduct points logic
-                        // Lvl 2/3: Only deduct if walking (NOT flying)
-                        // Lvl 4: ALL flying deduct points
+                        // Deduct Logic:
+                        // Level 4: All deduct.
+                        // Levels 1-3: Only Walking deducts.
                         if (currentLevel === 4) {
                             score -= 50;
                         } else {
